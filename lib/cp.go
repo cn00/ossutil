@@ -1266,6 +1266,7 @@ var copyCommand = CopyCommand{
 			OptionSnapshotPath,
 			OptionDisableCRC64,
 			OptionRequestPayer,
+			OptionLogFile,
 			OptionLogLevel,
 			OptionMaxUpSpeed,
 			OptionPartitionDownload,

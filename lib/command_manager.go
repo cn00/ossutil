@@ -41,6 +41,11 @@ func ParseAndRunCommand() error {
 		return fmt.Errorf("loglevel must be:info|debug")
 	}
 
+	strLogName, err := GetString(OptionLogFile, options)
+	if len(strLogName) > 0 {
+		logName = strLogName
+	}
+
 	if level > oss.LogOff {
 		InitLogger(level, logName)
 	}

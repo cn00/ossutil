@@ -48,6 +48,7 @@ const (
 	OptionMeta                       = "meta"
 	OptionRequestPayer               = "payer"
 	OptionLogLevel                   = "loglevel"
+	OptionLogFile                    = "logfile"
 	OptionMaxUpSpeed                 = "maxupspeed"
 	OptionUpload                     = "upload"
 	OptionDownload                   = "download"
