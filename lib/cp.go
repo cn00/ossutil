@@ -62,6 +62,7 @@ type copyOptionType struct {
 	disableDirObject  bool
 	disableAllSymlink bool
 	tagging           string
+	bSyncCommand      bool
 }
 
 type filterOptionType struct {
@@ -1278,6 +1279,7 @@ var copyCommand = CopyCommand{
 			OptionDisableAllSymlink,
 			OptionDisableIgnoreError,
 			OptionTagging,
+			OptionPassword,
 		},
 	},
 }
@@ -1483,8 +1485,8 @@ func (cc *CopyCommand) RunCommand() error {
 	}
 
 	cc.cpOption.reporter.Clear()
-
-	if err == nil {
+	ckFiles, _ := ioutil.ReadDir(cc.cpOption.cpDir)
+	if err == nil && len(ckFiles) == 0 {
 		LogInfo("begin Remove checkpointDir %s\n", cc.cpOption.cpDir)
 		os.RemoveAll(cc.cpOption.cpDir)
 	}
@@ -1708,8 +1710,8 @@ func (cc *CopyCommand) getCurrentDirFilesStatistic(dpath string) error {
 
 	for _, fileInfo := range fileList {
 		if !fileInfo.IsDir() {
-			realInfo, _ := os.Stat(dpath + fileInfo.Name())
-			if realInfo.IsDir() {
+			realInfo, errF := os.Stat(dpath + fileInfo.Name())
+			if errF == nil && realInfo.IsDir() {
 				// for symlink
 				continue
 			}
@@ -1846,8 +1848,8 @@ func (cc *CopyCommand) getCurrentDirFileList(dpath string, chFiles chan<- fileIn
 
 	for _, fileInfo := range fileList {
 		if !fileInfo.IsDir() {
-			realInfo, _ := os.Stat(dpath + fileInfo.Name())
-			if realInfo.IsDir() {
+			realInfo, errF := os.Stat(dpath + fileInfo.Name())
+			if errF == nil && realInfo.IsDir() {
 				// for symlink
 				continue
 			}
@@ -1957,7 +1959,11 @@ func (cc *CopyCommand) uploadConsumer(bucket *oss.Bucket, destURL CloudURL, chFi
 func (cc *CopyCommand) filterFile(file fileInfoType, cpDir string) bool {
 	filePath := file.filePath
 	if file.dir != "" {
-		filePath = file.dir + string(os.PathSeparator) + file.filePath
+		if strings.HasSuffix(file.dir, string(os.PathSeparator)) {
+			filePath = file.dir + file.filePath
+		} else {
+			filePath = file.dir + string(os.PathSeparator) + file.filePath
+		}
 	}
 	return cc.filterPath(filePath, cpDir)
 }
@@ -1991,7 +1997,9 @@ func (cc *CopyCommand) uploadFileWithReport(bucket *oss.Bucket, destURL CloudURL
 		if cost > 0 && errF == nil {
 			speed = (float64(fileInfo.Size()) / 1024) / (float64(cost) / 1000)
 		}
-		LogInfo("upload file success,file:%s,size:%d,speed:%.2f(KB/s),cost:%d(ms)\n", file.filePath, fileInfo.Size(), speed, cost)
+		if errF == nil {
+			LogInfo("upload file success,file:%s,size:%d,speed:%.2f(KB/s),cost:%d(ms)\n", file.filePath, fileInfo.Size(), speed, cost)
+		}
 	}
 
 	cc.updateMonitor(skip, err, isDir, size)
@@ -2359,6 +2367,17 @@ func (cc *CopyCommand) formatResultPrompt(err error) error {
 	return err
 }
 
+func (cc *CopyCommand) adjustSrcURLForCommand(srcURL *CloudURL, bSyncCommand bool) {
+	if !bSyncCommand {
+		return
+	}
+
+	if len(srcURL.object) > 0 && !strings.HasSuffix(srcURL.object, "/") {
+		srcURL.object += "/"
+	}
+	return
+}
+
 func (cc *CopyCommand) adjustDestURLForDownload(destURL FileURL) (string, error) {
 	filePath := destURL.ToString()
 
@@ -2595,6 +2614,7 @@ func (cc *CopyCommand) updateSnapshot(err error, spath string, srct int64) error
 }
 
 func (cc *CopyCommand) batchDownloadFiles(bucket *oss.Bucket, srcURL CloudURL, filePath string) error {
+	cc.adjustSrcURLForCommand(&srcURL, cc.cpOption.bSyncCommand)
 	chObjects := make(chan objectInfoType, ChannelBuf)
 	chError := make(chan error, cc.cpOption.routines)
 	chListError := make(chan error, 1)
@@ -3038,6 +3058,7 @@ func (cc *CopyCommand) ossResumeCopyRetry(bucketName, objectName, destBucketName
 }
 
 func (cc *CopyCommand) batchCopyFiles(bucket *oss.Bucket, srcURL, destURL CloudURL) error {
+	cc.adjustSrcURLForCommand(&srcURL, cc.cpOption.bSyncCommand)
 	chObjects := make(chan objectInfoType, ChannelBuf)
 	chError := make(chan error, cc.cpOption.routines)
 	chListError := make(chan error, 1)

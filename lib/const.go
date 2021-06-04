@@ -85,6 +85,9 @@ const (
 	OptionTagging                    = "tagging"
 	OptionStartTime                  = "startTime"
 	OptionEndTime                    = "endTime"
+	OptionBackupDir                  = "backupDir"
+	OptionPassword                   = "password"
+	OptionBlockSize                  = "blockSize"
 )
 
 // the elements show in stat object
@@ -130,7 +133,7 @@ const (
 const (
 	Package                 string = "ossutil"
 	ChannelBuf              int    = 1000
-	Version                 string = "v1.6.18"
+	Version                 string = "v1.7.3"
 	DefaultEndpoint         string = "oss.aliyuncs.com"
 	ChineseLanguage                = "CH"
 	EnglishLanguage                = "EN"
@@ -185,6 +188,7 @@ const (
 	IncludePrompt                  = "--include"
 	ExcludePrompt                  = "--exclude"
 	MaxAppendObjectSize     int64  = 5368709120
+	MaxBatchCount           int    = 100
 )
 
 const (
